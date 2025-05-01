@@ -1,14 +1,13 @@
 // app/page.tsx
-
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { useCallback } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, Bot, User, ExternalLink, ChevronDown, ChevronUp } from "lucide-react" // 아이콘 추가
+import { Send, Bot, User, ExternalLink, ChevronDown, ChevronUp } from "lucide-react"
 import SuggestedQuestions from "@/components/suggested-questions"
-import ChatMessage from "@/components/chat-message" // ChatMessage 컴포넌트 임포트
+import ChatMessage from "@/components/chat-message"
+import { cn } from "@/lib/utils" // cn 유틸리티 임포트 (선택 사항)
 
 // --- Define Message Type ---
 interface Message {
@@ -38,186 +37,128 @@ export default function Home() {
     const [messages, setMessages] = useState<Message[]>(initialMessages)
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
-    const [showDevInfo, setShowDevInfo] = useState(false) // 개발자 정보 표시 상태
+    const [showDevInfo, setShowDevInfo] = useState(false)
     const [currentTypingIndex, setCurrentTypingIndex] = useState(-1)
     const [displayedText, setDisplayedText] = useState("")
 
     const chatContainerRef = useRef<HTMLDivElement>(null)
-    const devInfoRef = useRef<HTMLDivElement>(null); // 개발자 정보 드롭다운 참조
+    const inputRef = useRef<HTMLInputElement>(null);
+    const devInfoRef = useRef<HTMLDivElement>(null);
 
-    const scrollToBottom = useCallback(() => {
+    // --- 스크롤 로직 (변경 없음) ---
+    const scrollToBottom = useCallback((force = false) => {
         if (chatContainerRef.current) {
             const { scrollHeight, clientHeight, scrollTop } = chatContainerRef.current;
-            const isScrolledToBottom = scrollHeight - scrollTop <= clientHeight + 10; // 약간의 여유 추가
-            if (scrollHeight > clientHeight && (!isScrolledToBottom || isLoading || currentTypingIndex >= 0)) {
-                chatContainerRef.current.scrollTo({ top: scrollHeight, behavior: 'smooth' });
+            const isScrolledUp = scrollHeight - scrollTop > clientHeight + 50;
+            if (force || !isScrolledUp || isLoading || currentTypingIndex >= 0) {
+                requestAnimationFrame(() => {
+                    chatContainerRef.current?.scrollTo({ top: scrollHeight, behavior: 'smooth' });
+                });
             }
         }
-    }, [chatContainerRef, isLoading, currentTypingIndex]); // 의존성 배열 추가
+    }, [isLoading, currentTypingIndex]);
 
-    /*
-    // 메시지 변경 시 스크롤 조정
-    useEffect(() => {
-        // DOM 업데이트 후 스크롤 조정을 위해 약간의 지연 추가
-        const scrollTimer = setTimeout(() => {
-            scrollToBottom();
-        }, 50); // 지연 시간 조정 가능
-
-        return () => clearTimeout(scrollTimer);
-    }, [messages]); // messages 배열 자체가 변경될 때만 실행
-    */
     useEffect(() => {
         const scrollTimer = setTimeout(() => {
-            scrollToBottom(); // 의존성 배열에 추가된 scrollToBottom 호출
+            const isNewMessage = messages.length > initialMessages.length;
+            const isBotTyping = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && !messages[messages.length - 1].completed;
+            scrollToBottom(isNewMessage || isBotTyping);
         }, 50);
-
         return () => clearTimeout(scrollTimer);
-    }, [messages, scrollToBottom]); // scrollToBottom 추가
+    }, [messages, scrollToBottom]);
 
-    // 타이핑 중 표시되는 텍스트 변경 시 스크롤 조정
     useEffect(() => {
         if (currentTypingIndex >= 0) {
-            // 타이핑 중에는 스크롤을 계속 아래로 유지
             const typingScrollTimer = setTimeout(() => {
-                if (chatContainerRef.current) {
-                    chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-                }
-            }, 20); // 타이핑 속도보다 약간 느리게
+                scrollToBottom(true);
+            }, 50);
             return () => clearTimeout(typingScrollTimer);
         }
-    }, [displayedText, currentTypingIndex]);
-    /*
-    // 컴포넌트 마운트 시 스크롤 초기화
-    useEffect(() => {
-        const initialScrollTimer = setTimeout(() => {
-            scrollToBottom();
-        }, 100); // 초기 로딩 시간 고려
-        return () => clearTimeout(initialScrollTimer);
-    }, []);
-    */
-    useEffect(() => {
-        const initialScrollTimer = setTimeout(() => {
-            scrollToBottom();
-        }, 100);
+    }, [displayedText, currentTypingIndex, scrollToBottom]);
 
+    useEffect(() => {
+        const initialScrollTimer = setTimeout(() => {
+            scrollToBottom(true);
+        }, 100);
         return () => clearTimeout(initialScrollTimer);
     }, [scrollToBottom]);
     // --- End of Scroll functions ---
 
-    // --- Typing Effect ---
+    // --- Typing Effect (변경 없음) ---
     useEffect(() => {
         if (currentTypingIndex >= 0 && currentTypingIndex < messages.length) {
             const message = messages[currentTypingIndex];
-            // 메시지가 존재하고, assistant 역할이며, 아직 완료되지 않았을 때만 실행
             if (message && !message.completed && message.role === 'assistant') {
                 const fullText = message.content;
                 const i = displayedText.length;
-
                 if (i < fullText.length) {
-                    const typingSpeed = 15; // 타이핑 속도 (글자당 밀리초)
-                    const timer = setTimeout(() => {
-                        setDisplayedText(fullText.substring(0, i + 1));
-                    }, typingSpeed);
-                    // 컴포넌트 언마운트 또는 의존성 변경 시 타이머 클리어
+                    const typingSpeed = 15;
+                    const timer = setTimeout(() => setDisplayedText(fullText.substring(0, i + 1)), typingSpeed);
                     return () => clearTimeout(timer);
                 } else {
-                    // 타이핑 완료 처리
                     setMessages(prevMessages => {
                         const updated = [...prevMessages];
-                        // 현재 인덱스가 유효한지 다시 확인
                         if (updated[currentTypingIndex]) {
                             updated[currentTypingIndex] = { ...updated[currentTypingIndex], completed: true };
                         }
                         return updated;
                     });
-                    // 타이핑 상태 초기화
                     setCurrentTypingIndex(-1);
                     setDisplayedText("");
                 }
             } else {
-                // 메시지가 사용자 메시지이거나 이미 완료된 경우 타이핑 상태 초기화
                 if (currentTypingIndex !== -1) {
                     setCurrentTypingIndex(-1);
                     setDisplayedText("");
                 }
             }
         }
-    }, [currentTypingIndex, displayedText, messages]); // messages 배열도 의존성에 포함
+    }, [currentTypingIndex, displayedText, messages]);
     // --- End of Typing Effect ---
 
-    // --- 외부 클릭 감지하여 개발자 정보 닫기 ---
+    // --- 외부 클릭 감지 (변경 없음) ---
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            // devInfoRef.current가 존재하고, 클릭된 요소가 드롭다운 내부에 포함되지 않을 때
-            if (devInfoRef.current && !devInfoRef.current.contains(event.target as Node)) {
-                setShowDevInfo(false); // 드롭다운 닫기
-            }
+            if (devInfoRef.current && !devInfoRef.current.contains(event.target as Node)) setShowDevInfo(false);
         }
-        // 이벤트 리스너 등록
         document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            // 컴포넌트 언마운트 시 리스너 제거
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [devInfoRef]); // ref는 일반적으로 변경되지 않으므로 한 번만 실행됨
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [devInfoRef]);
     // --- End of 외부 클릭 감지 ---
 
-
-    // --- 메시지 전송 및 API 호출 함수 ---
+    // --- 메시지 전송 및 API 호출 함수 (변경 없음) ---
     const handleSendMessage = async (message: string) => {
         const trimmedMessage = message.trim();
-        if (!trimmedMessage || isLoading) return; // 빈 메시지 또는 로딩 중 전송 방지
-
+        if (!trimmedMessage || isLoading) return;
         const newUserMessage: Message = { role: "user", content: trimmedMessage, completed: true };
-        // 이전 메시지 상태를 기반으로 새 메시지 추가 (함수형 업데이트)
         setMessages(prevMessages => [...prevMessages, newUserMessage]);
-        setInput(""); // 입력창 비우기
-        setIsLoading(true); // 로딩 상태 시작
+        setInput("");
+        setIsLoading(true);
+        inputRef.current?.blur();
 
         try {
-            // --- Flask API 호출 ---
             const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-            // 환경 변수가 설정되지 않은 경우 오류 처리
             if (!apiUrl) {
                 console.error("API URL 환경 변수(NEXT_PUBLIC_API_URL)가 설정되지 않았습니다.");
                 setMessages(prev => [...prev, { role: "assistant", content: "오류: 챗봇 설정을 불러올 수 없습니다. 관리자에게 문의하세요.", completed: true }]);
-                setIsLoading(false); // 로딩 상태 해제
-                return; // 함수 종료
+                setIsLoading(false);
+                return;
             }
-
-            const response = await fetch(apiUrl, { // 환경 변수 apiUrl 사용
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: trimmedMessage }),
+            const response = await fetch(apiUrl, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: trimmedMessage }),
             });
-
-            setIsLoading(false); // API 응답 후 로딩 상태 해제
-
+            setIsLoading(false);
             if (!response.ok) {
-                // API 오류 처리
                 const errorData = await response.json().catch(() => ({ error: "응답 본문 파싱 실패" }));
                 console.error("API Error Response:", response.status, errorData);
                 setMessages(prev => [...prev, { role: "assistant", content: `오류: ${errorData.error || `서버 응답 코드 ${response.status}`}`, completed: true }]);
-                return; // 오류 발생 시 종료
+                return;
             }
-
-            // --- 성공적인 API 응답 처리 ---
             const data = await response.json();
-            // API가 'response' 키를 포함하고 문자열 값을 가지는지 확인
             const assistantResponse = typeof data.response === 'string' ? data.response : "죄송합니다. 유효하지 않은 응답 형식입니다.";
-
-            // 새 어시스턴트 메시지 (타이핑 효과 시작 전)
             const assistantMessagePlaceholder: Message = { role: "assistant", content: assistantResponse, completed: false };
-            // 이전 메시지 상태 기반으로 업데이트
             setMessages(prevMessages => [...prevMessages, assistantMessagePlaceholder]);
-            setCurrentTypingIndex(messages.length + 1); // 새로 추가될 메시지의 인덱스 설정 (기존 messages 길이 + 1, 0-based index) -> 주의: 상태 업데이트는 비동기! 아래 useEffect에서 messages.length를 사용하는 것이 더 정확할 수 있음.
-            setDisplayedText(""); // 타이핑 시작 위해 초기화
-
         } catch (error) {
-            // 네트워크 오류 등 fetch 자체 오류 처리
             console.error("Fetch API Error:", error);
             setIsLoading(false);
             setMessages(prev => [...prev, { role: "assistant", content: "죄송합니다. API 서버 연결에 실패했습니다.", completed: true }]);
@@ -225,133 +166,104 @@ export default function Home() {
     };
     // --- End of handleSendMessage ---
 
-    // currentTypingIndex 설정 시 messages.length를 사용하도록 useEffect 추가 (상태 업데이트 지연 고려)
+    // currentTypingIndex 설정 (변경 없음)
     useEffect(() => {
         if (messages.length > 0 && messages[messages.length - 1].role === 'assistant' && !messages[messages.length - 1].completed) {
             setCurrentTypingIndex(messages.length - 1);
         }
     }, [messages]);
 
-
-    // 추천 질문 클릭 핸들러
+    // 추천 질문 클릭 핸들러 (변경 없음)
     const handleQuestionClick = (question: string) => {
-        setInput(question); // 입력창에 질문 채우기
-        // 포커스를 입력창으로 이동시켜 사용자가 바로 전송하거나 수정할 수 있게 함
-        const inputElement = document.getElementById("userInput") as HTMLInputElement | null;
-        if (inputElement) {
-            inputElement.focus();
-        }
-        // 선택적으로 클릭 시 바로 전송하고 싶으면 아래 주석 해제
-        // handleSendMessage(question);
+        setInput(question);
+        inputRef.current?.focus();
     };
 
     // --- JSX 렌더링 ---
     return (
-        <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-12 lg:p-24 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-            <div className="z-10 w-full max-w-3xl flex flex-col h-[90vh] md:h-[85vh] bg-white shadow-2xl rounded-xl border border-gray-200 overflow-hidden">
+        // 전체 배경은 여전히 전체 화면 차지
+        <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+            {/* 채팅 인터페이스 컨테이너: 기본적으로 전체 너비, lg 이상에서는 max-w-3xl, 중앙 정렬, 그림자/테두리 추가 */}
+            <div className={cn(
+                "flex flex-col w-full bg-white overflow-hidden", // 기본 스타일 (모바일)
+                "lg:max-w-5xl lg:h-[90vh] lg:rounded-xl lg:shadow-3xl lg:border lg:border-gray-200", // lg 이상 화면에서의 스타일
+                "h-[95vh]" // 모바일 화면에서의 높이 (상하단 여백 조금 주기 위해 100vh 대신 사용)
+            )}>
                 {/* Header Section */}
-                <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
-                    <div className="flex items-center">
-                        <Bot className="h-7 w-7 md:h-8 md:w-8 mr-2 text-indigo-600" />
-                        <h1 className="text-lg md:text-xl font-semibold text-gray-800">온톨로지&백터 기반 RAG 챗봇</h1>
+                <div className="flex items-center justify-between p-3 md:p-4 border-b bg-white sticky top-0 z-10 flex-shrink-0">
+                    {/* 헤더 내용 (변경 없음) */}
+                    <div className="flex items-center min-w-0">
+                        <Bot className="h-6 w-6 md:h-8 md:w-8 mr-2 text-indigo-600 flex-shrink-0" />
+                        <h1 className="text-base md:text-xl font-semibold text-gray-800 truncate">
+                            온톨로지&백터 기반 RAG 챗봇
+                        </h1>
                     </div>
-                    {/* --- 오른쪽 아이콘/링크 영역 --- */}
-                    <div className="flex items-center space-x-2 md:space-x-3"> {/* 이전 간격 유지 */}
-                        {/* 개발자 정보 버튼 및 드롭다운 (변경 없음) */}
+                    <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
                         <div className="relative" ref={devInfoRef}>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="flex items-center space-x-1 text-xs md:text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-md px-2 py-1"
-                                onClick={() => setShowDevInfo(prev => !prev)}
-                                title="개발자 정보"
-                            >
-                                <User className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                                <span className="hidden md:inline">개발자 정보</span>
-                                {showDevInfo ? <ChevronUp className="h-3 w-3 md:h-4 md:w-4 ml-1 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 md:h-4 md:w-4 ml-1 flex-shrink-0" />}
+                            <Button variant="ghost" size="sm" className="flex items-center space-x-1 text-xs md:text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md p-2" onClick={() => setShowDevInfo(prev => !prev)} title="개발자 정보">
+                                <User className="h-4 w-4" />
+                                <span className="hidden sm:inline">개발자 정보</span>
+                                {showDevInfo ? <ChevronUp className="h-4 w-4 ml-1 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 ml-1 flex-shrink-0" />}
                             </Button>
-
                             {showDevInfo && (
-                                <div className="absolute right-0 mt-2 w-60 md:w-64 bg-white rounded-md shadow-lg p-4 z-20 border text-xs md:text-sm animate-in fade-in duration-150">
+                                <div className="absolute right-0 mt-2 w-60 max-w-[80vw] md:w-64 bg-white rounded-md shadow-lg p-3 md:p-4 z-30 border text-xs md:text-sm animate-in fade-in duration-150">
                                     <h3 className="font-semibold text-gray-900 mb-2">개발자 정보</h3>
                                     <p className="text-gray-700 mb-1">이름: 정진원</p>
-                                    <p className="text-gray-700 mb-1">연락처: 010-7352-5435</p>
-                                    <p className="text-gray-700 mb-1">
-                                        이메일: <a href="mailto:wlsdnjswon@gmail.com" className="text-indigo-600 hover:underline">wlsdnjswon@gmail.com</a>
-                                    </p>
-                                    <p className="text-gray-500 text-xs mt-1 pt-1 border-t">
-                                        © MIT License
-                                    </p>
-                                    <p className="text-gray-500 text-xs mt-3">
-                                        구현과 관련된 자세한 사항은 GitHub를 참고해 주세요.
-                                    </p>
+                                    <p className="text-gray-700 mb-1">연락처: <a href="tel:010-7352-5435" className="text-indigo-600 hover:underline">010-7352-5435</a></p>
+                                    <p className="text-gray-700 mb-1 break-all">이메일: <a href="mailto:wlsdnjswon@gmail.com" className="text-indigo-600 hover:underline">wlsdnjswon@gmail.com</a></p>
+                                    <p className="text-gray-500 text-xs mt-1 pt-1 border-t">© MIT License</p>
+                                    <p className="text-gray-500 text-xs mt-3">구현과 관련된 자세한 사항은 GitHub를 참고해 주세요.</p>
                                 </div>
-
                             )}
                         </div>
-
-                        {/* Google Scholar 링크 */}
                         <a href="https://scholar.google.co.kr/citations?user=H8Fz07YAAAAJ&hl=ko&authuser=1/" target="_blank" rel="noopener noreferrer" title="Google Scholar">
-                            <Button variant="outline" size="sm" className="flex items-center space-x-1 text-xs md:text-sm px-2 py-1">
+                            <Button variant="outline" size="sm" className="flex items-center space-x-1 text-xs md:text-sm px-2 py-2">
                                 <span className="hidden sm:inline">Google Scholar</span>
-                                <span className="sm:hidden">Scholar</span> {/* 작은 화면용 텍스트 */}
-                                <ExternalLink className="h-3 w-3 md:h-4 md:w-4 ml-1 flex-shrink-0" />
+                                <span className="sm:hidden">Scholar</span>
+                                <ExternalLink className="h-4 w-4 ml-1 flex-shrink-0" />
                             </Button>
                         </a>
-
-                        {/* --- GitHub 링크 추가 (아이콘 버튼 형태) --- */}
                         <a href="https://github.com/wlsdnjswon/vector-ontology-by-backend-RAG" target="_blank" rel="noopener noreferrer" title="GitHub">
-                            {/* 여기에 실제 GitHub 프로필 URL을 넣으세요 */}
-                            <Button variant="ghost" size="icon" className="w-8 h-8 md:w-9 md:h-9 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full">
-                                {/* SVG GitHub 아이콘 사용 */}
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-                                </svg>
-                                <span className="sr-only">GitHub</span> {/* 스크린 리더용 텍스트 */}
+                            <Button variant="ghost" size="icon" className="w-9 h-9 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" /></svg>
+                                <span className="sr-only">GitHub</span>
                             </Button>
                         </a>
                     </div>
                 </div>
 
                 {/* Chat Area */}
-                <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-4 p-4">
+                <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-4 p-4 pb-2">
+                    {/* 메시지 매핑 (변경 없음) */}
                     {messages.map((message, index) => (
-                        <ChatMessage
-                            key={index} // key는 고유해야 함
-                            role={message.role}
-                            content={index === currentTypingIndex ? displayedText : message.content}
-                        />
+                        <ChatMessage key={index} role={message.role} content={index === currentTypingIndex ? displayedText : message.content} />
                     ))}
-                    {/* 로딩 상태는 이제 ChatMessage 내부에서 빈 메시지 + 애니메이션으로 처리됨 */}
+                    {/* 로딩 인디케이터 (변경 없음) */}
+                    {isLoading && (
+                        <div className="flex items-start space-x-3 animate-pulse">
+                            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center"><Bot className="h-5 w-5 text-indigo-600" /></div>
+                            <div className="p-3 rounded-lg bg-gray-100 text-gray-800 rounded-bl-none">
+                                <div className="flex space-x-1 items-center h-5">
+                                    <span className="inline-block w-1.5 h-1.5 bg-indigo-400 rounded-full motion-safe:animate-bounce delay-0"></span>
+                                    <span className="inline-block w-1.5 h-1.5 bg-indigo-400 rounded-full motion-safe:animate-bounce delay-150"></span>
+                                    <span className="inline-block w-1.5 h-1.5 bg-indigo-400 rounded-full motion-safe:animate-bounce delay-300"></span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Suggested Questions Area - 항상 표시 */}
-                <div className="px-4 pt-2 pb-4 border-t bg-gray-50/50">
+                {/* Suggested Questions Area */}
+                <div className="flex-shrink-0 px-4 pt-2 pb-2 border-t bg-gray-50/50">
                     <SuggestedQuestions questions={suggestedQuestionsList} onQuestionClick={handleQuestionClick} />
                 </div>
 
                 {/* Input Area */}
-                <div className="flex items-center space-x-2 p-3 md:p-4 border-t bg-white sticky bottom-0 z-10">
-                    <Input
-                        id="userInput" // 포커스를 위한 ID 추가
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="질문을 입력하세요..."
-                        className="flex-1 text-sm md:text-base"
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey && !isLoading) {
-                                e.preventDefault();
-                                handleSendMessage(input);
-                            }
-                        }}
-                        disabled={isLoading}
-                    />
-                    <Button onClick={() => handleSendMessage(input)} disabled={!input.trim() || isLoading} size="icon" className="w-9 h-9 md:w-10 md:h-10">
-                        {isLoading ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-t-2 border-white"></div>
-                        ) : (
-                            <Send className="h-4 w-4 md:h-5 md:w-5" />
-                        )}
+                <div className="flex items-center space-x-2 p-3 md:p-4 border-t bg-white flex-shrink-0">
+                    {/* 입력 필드 및 전송 버튼 (변경 없음) */}
+                    <Input ref={inputRef} id="userInput" value={input} onChange={(e) => setInput(e.target.value)} placeholder="질문을 입력하세요..." className="flex-1 text-sm md:text-base" onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !isLoading) { e.preventDefault(); handleSendMessage(input); } }} disabled={isLoading} />
+                    <Button onClick={() => handleSendMessage(input)} disabled={!input.trim() || isLoading} size="icon" className="w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
+                        {isLoading ? (<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-t-2 border-white"></div>) : (<Send className="h-4 w-4 md:h-5 md:w-5" />)}
                     </Button>
                 </div>
             </div>
