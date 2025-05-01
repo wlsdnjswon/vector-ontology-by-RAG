@@ -199,18 +199,37 @@ export default function Home() {
                         </h1>
                     </div>
                     <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
+                        {/* 개발자 정보 버튼 및 드롭다운 */}
                         <div className="relative" ref={devInfoRef}>
-                            <Button variant="ghost" size="sm" className="flex items-center space-x-1 text-xs md:text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md p-2" onClick={() => setShowDevInfo(prev => !prev)} title="개발자 정보">
+                            {/* 개발자 정보 버튼 (변경 없음) */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center space-x-1 text-xs md:text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md p-2"
+                                onClick={() => setShowDevInfo(prev => !prev)}
+                                title="개발자 정보"
+                            >
                                 <User className="h-4 w-4" />
                                 <span className="hidden sm:inline">개발자 정보</span>
                                 {showDevInfo ? <ChevronUp className="h-4 w-4 ml-1 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 ml-1 flex-shrink-0" />}
                             </Button>
+
+                            {/* 드롭다운 메뉴 */}
                             {showDevInfo && (
-                                <div className="absolute right-0 mt-2 w-60 max-w-[80vw] md:w-64 bg-white rounded-md shadow-lg p-3 md:p-4 z-30 border text-xs md:text-sm animate-in fade-in duration-150">
+                                <div
+                                    className={
+                                        "absolute left-1/2 md:left-auto md:right-0 mt-2 w-60 max-w-[80vw] md:w-64 " + // 너비 및 최대 너비 설정
+                                        "bg-white rounded-md shadow-lg p-3 md:p-4 z-30 border text-xs md:text-sm " + // 스타일링
+                                        "transform -translate-x-1/2 md:translate-x-0 " + // **핵심: 가운데 정렬 (모바일), 오른쪽 정렬 (md 이상)**
+                                        "animate-in fade-in duration-150" // 애니메이션
+                                    }>
+                                    {/* 개발자 정보 내용 */}
                                     <h3 className="font-semibold text-gray-900 mb-2">개발자 정보</h3>
                                     <p className="text-gray-700 mb-1">이름: 정진원</p>
                                     <p className="text-gray-700 mb-1">연락처: <a href="tel:010-7352-5435" className="text-indigo-600 hover:underline">010-7352-5435</a></p>
-                                    <p className="text-gray-700 mb-1 break-all">이메일: <a href="mailto:wlsdnjswon@gmail.com" className="text-indigo-600 hover:underline">wlsdnjswon@gmail.com</a></p>
+                                    <p className="text-gray-700 mb-1 break-all">
+                                        이메일: <a href="mailto:wlsdnjswon@gmail.com" className="text-indigo-600 hover:underline">wlsdnjswon@gmail.com</a>
+                                    </p>
                                     <p className="text-gray-500 text-xs mt-1 pt-1 border-t">© MIT License</p>
                                     <p className="text-gray-500 text-xs mt-3">구현과 관련된 자세한 사항은 GitHub를 참고해 주세요.</p>
                                 </div>
