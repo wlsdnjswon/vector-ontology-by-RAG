@@ -28,9 +28,9 @@ const initialMessages: Message[] = [
 
 // --- Update suggested questions based on your RAG system's capabilities ---
 const suggestedQuestionsList = [
-    "정진원이 누구인지 자세하게 설명해줘.",
+    "정진원이 누구인지 정리해서 설명해줘.",
     "SAR 선박 영상의 시멘틱 분할 성능 향상 논문은 무슨 내용이야?",
-    "정진원이 작성한 논문이 어느 경로에 있는지 모르겠어. 위치를 찾아줘.",
+    "정진원이 받은 상장 pdf가 어느 경로에 있는지 모르겠어. 위치를 찾아줘.",
     "정진원이 받은 특허는 어떤 내용이야?",
 ];
 
