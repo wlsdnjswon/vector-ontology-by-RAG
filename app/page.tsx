@@ -176,7 +176,7 @@ export default function Home() {
 
         try {
             // --- Flask API 호출 ---
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API 엔드포인트 확인!
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
             // 환경 변수가 설정되지 않은 경우 오류 처리
             if (!apiUrl) {
