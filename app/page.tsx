@@ -176,14 +176,22 @@ export default function Home() {
 
         try {
             // --- Flask API 호출 ---
-            const apiUrl = "http://localhost:5000/chat"; // API 엔드포인트 확인!
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL; // API 엔드포인트 확인!
 
-            const response = await fetch(apiUrl, {
+            // 환경 변수가 설정되지 않은 경우 오류 처리
+            if (!apiUrl) {
+                console.error("API URL 환경 변수(NEXT_PUBLIC_API_URL)가 설정되지 않았습니다.");
+                setMessages(prev => [...prev, { role: "assistant", content: "오류: 챗봇 설정을 불러올 수 없습니다. 관리자에게 문의하세요.", completed: true }]);
+                setIsLoading(false); // 로딩 상태 해제
+                return; // 함수 종료
+            }
+
+            const response = await fetch(apiUrl, { // 환경 변수 apiUrl 사용
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message: trimmedMessage }), // 사용자가 입력한 메시지 전송
+                body: JSON.stringify({ message: trimmedMessage }),
             });
 
             setIsLoading(false); // API 응답 후 로딩 상태 해제

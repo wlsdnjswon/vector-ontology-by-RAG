@@ -4,24 +4,13 @@ import { Bot, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import ReactMarkdown, { Options } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { ClassAttributes, AnchorHTMLAttributes, ElementType } from "react"
-import { Node } from 'unist' // remark 노드 타입 임포트
-
-// ExtraProps 타입 정의
-type ExtraProps = {
-    node?: Node; // 'any' 대신 명확한 타입 사용
-    inline?: boolean;
-    className?: string;
-    children?: React.ReactNode;
-};
-
-// a 태그 컴포넌트 타입 정의
-type Components = Options['components'] & {
-    a?: ElementType<ClassAttributes<HTMLAnchorElement> & AnchorHTMLAttributes<HTMLAnchorElement> & ExtraProps>;
-};
+// ClassAttributes, AnchorHTMLAttributes, ElementType 등은 markdownComponents 구현 방식에 따라 불필요할 수 있습니다.
+// Options['components']만 사용하는 것이 더 간단할 수 있습니다.
+// import { ClassAttributes, AnchorHTMLAttributes, ElementType } from "react"
+// import { Node } from 'unist' // 'node'를 명시적으로 사용하지 않으므로 이 임포트도 제거 가능
 
 interface ChatMessageProps {
-    role: "user" | "assistant"; // 타입을 명확히
+    role: "user" | "assistant";
     content: string;
 }
 
@@ -29,14 +18,18 @@ export default function ChatMessage({ role, content }: ChatMessageProps) {
     const isUser = role === "user"
     const isEmptyAssistant = role === 'assistant' && content.length === 0;
 
-    const markdownComponents: Components = {
-        a: ({ node: _node, ...props }) => ( // 'node'를 '_node'로 변경
+    const markdownComponents: Options['components'] = {
+        // 'node'는 사용하지 않으므로 구조 분해 할당에서 제거했습니다.
+        // props에는 href, children 등이 포함됩니다.
+        a: ({ children, ...props }) => (
             <a
-                {...props}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-600 hover:text-indigo-800 underline font-medium"
-            />
+                {...props} // href, title 등 ReactMarkdown이 전달하는 속성 포함
+                target="_blank" // '=' 앞뒤 공백 제거 (올바른 JSX 문법)
+                rel="noopener noreferrer" // '=' 앞뒤 공백 제거 (올바른 JSX 문법)
+                className="text-indigo-600 hover:text-indigo-800 underline font-medium" // '=' 앞뒤 공백 제거 (올바른 JSX 문법)
+            >
+                {children} {/* children을 명시적으로 전달 */}
+            </a>
         ),
     };
 
