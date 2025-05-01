@@ -3,6 +3,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send, Bot, User, ExternalLink, ChevronDown, ChevronUp } from "lucide-react" // 아이콘 추가
@@ -44,19 +45,17 @@ export default function Home() {
     const chatContainerRef = useRef<HTMLDivElement>(null)
     const devInfoRef = useRef<HTMLDivElement>(null); // 개발자 정보 드롭다운 참조
 
-    // --- Scroll functions ---
-    const scrollToBottom = () => {
+    const scrollToBottom = useCallback(() => {
         if (chatContainerRef.current) {
-            // 스크롤이 필요한 경우에만 부드럽게 이동
             const { scrollHeight, clientHeight, scrollTop } = chatContainerRef.current;
             const isScrolledToBottom = scrollHeight - scrollTop <= clientHeight + 10; // 약간의 여유 추가
-            // 새 메시지가 추가될 때만 강제로 아래로 스크롤 (타이핑 중에는 사용자가 올리면 유지)
             if (scrollHeight > clientHeight && (!isScrolledToBottom || isLoading || currentTypingIndex >= 0)) {
                 chatContainerRef.current.scrollTo({ top: scrollHeight, behavior: 'smooth' });
             }
         }
-    };
+    }, [chatContainerRef, isLoading, currentTypingIndex]); // 의존성 배열 추가
 
+    /*
     // 메시지 변경 시 스크롤 조정
     useEffect(() => {
         // DOM 업데이트 후 스크롤 조정을 위해 약간의 지연 추가
@@ -66,6 +65,14 @@ export default function Home() {
 
         return () => clearTimeout(scrollTimer);
     }, [messages]); // messages 배열 자체가 변경될 때만 실행
+    */
+    useEffect(() => {
+        const scrollTimer = setTimeout(() => {
+            scrollToBottom(); // 의존성 배열에 추가된 scrollToBottom 호출
+        }, 50);
+
+        return () => clearTimeout(scrollTimer);
+    }, [messages, scrollToBottom]); // scrollToBottom 추가
 
     // 타이핑 중 표시되는 텍스트 변경 시 스크롤 조정
     useEffect(() => {
@@ -79,7 +86,7 @@ export default function Home() {
             return () => clearTimeout(typingScrollTimer);
         }
     }, [displayedText, currentTypingIndex]);
-
+    /*
     // 컴포넌트 마운트 시 스크롤 초기화
     useEffect(() => {
         const initialScrollTimer = setTimeout(() => {
@@ -87,6 +94,14 @@ export default function Home() {
         }, 100); // 초기 로딩 시간 고려
         return () => clearTimeout(initialScrollTimer);
     }, []);
+    */
+    useEffect(() => {
+        const initialScrollTimer = setTimeout(() => {
+            scrollToBottom();
+        }, 100);
+
+        return () => clearTimeout(initialScrollTimer);
+    }, [scrollToBottom]);
     // --- End of Scroll functions ---
 
     // --- Typing Effect ---
