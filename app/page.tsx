@@ -21,7 +21,7 @@ interface Message {
 const initialMessages: Message[] = [
     {
         role: "assistant",
-        content: "안녕하세요! 온톨로지 기반 지식 챗봇입니다. 무엇이 궁금하신가요?",
+        content: "안녕하세요! RAG 챗봇입니다. 개발자에 대해 이것저것 질문해 보세요!",
         completed: true,
     },
 ];
@@ -30,7 +30,7 @@ const initialMessages: Message[] = [
 const suggestedQuestionsList = [
     "정진원이 누구인지 자세하게 설명해줘.",
     "SAR 선박 영상의 시멘틱 분할 성능 향상 논문은 무슨 내용이야?",
-    "정진원이 받은 상장이 어느 폴더에 있는지 모르겠어. 위치를 찾아줘.",
+    "정진원이 작성한 논문이 어느 경로에 있는지 모르겠어. 위치를 찾아줘.",
     "정진원이 받은 특허는 어떤 내용이야?",
 ];
 
@@ -253,30 +253,40 @@ export default function Home() {
                 <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
                     <div className="flex items-center">
                         <Bot className="h-7 w-7 md:h-8 md:w-8 mr-2 text-indigo-600" />
-                        <h1 className="text-lg md:text-xl font-semibold text-gray-800">온톨로지 RAG 챗봇</h1>
+                        <h1 className="text-lg md:text-xl font-semibold text-gray-800">온톨로지&백터 기반 RAG 챗봇</h1>
                     </div>
-                    <div className="flex items-center space-x-2 md:space-x-3">
-                        {/* 개발자 정보 버튼 및 드롭다운 */}
+                    {/* --- 오른쪽 아이콘/링크 영역 --- */}
+                    <div className="flex items-center space-x-2 md:space-x-3"> {/* 이전 간격 유지 */}
+                        {/* 개발자 정보 버튼 및 드롭다운 (변경 없음) */}
                         <div className="relative" ref={devInfoRef}>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 className="flex items-center space-x-1 text-xs md:text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-md px-2 py-1"
                                 onClick={() => setShowDevInfo(prev => !prev)}
+                                title="개발자 정보"
                             >
                                 <User className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                                <span className="hidden sm:inline">개발자 정보</span>
+                                <span className="hidden md:inline">개발자 정보</span>
                                 {showDevInfo ? <ChevronUp className="h-3 w-3 md:h-4 md:w-4 ml-1 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 md:h-4 md:w-4 ml-1 flex-shrink-0" />}
                             </Button>
 
                             {showDevInfo && (
                                 <div className="absolute right-0 mt-2 w-60 md:w-64 bg-white rounded-md shadow-lg p-4 z-20 border text-xs md:text-sm animate-in fade-in duration-150">
-                                    <h3 className="font-semibold text-gray-900 mb-2">챗봇 정보</h3>
+                                    <h3 className="font-semibold text-gray-900 mb-2">개발자 정보</h3>
                                     <p className="text-gray-700 mb-1">이름: 정진원</p>
                                     <p className="text-gray-700 mb-1">연락처: 010-7352-5435</p>
-                                    <p className="text-gray-700 mb-1">이메일: <a href="mailto:wlsdnjswon@gmail.com" className="text-indigo-600 hover:underline">wlsdnjswon@gmail.com</a></p>
-                                    <p className="text-gray-500 text-xs mt-3 pt-2 border-t">© 2024 RAG Chat</p>
+                                    <p className="text-gray-700 mb-1">
+                                        이메일: <a href="mailto:wlsdnjswon@gmail.com" className="text-indigo-600 hover:underline">wlsdnjswon@gmail.com</a>
+                                    </p>
+                                    <p className="text-gray-500 text-xs mt-1 pt-1 border-t">
+                                        © MIT License
+                                    </p>
+                                    <p className="text-gray-500 text-xs mt-3">
+                                        구현과 관련된 자세한 사항은 GitHub를 참고해 주세요.
+                                    </p>
                                 </div>
+
                             )}
                         </div>
 
@@ -284,8 +294,20 @@ export default function Home() {
                         <a href="https://scholar.google.co.kr/citations?user=H8Fz07YAAAAJ&hl=ko&authuser=1/" target="_blank" rel="noopener noreferrer" title="Google Scholar">
                             <Button variant="outline" size="sm" className="flex items-center space-x-1 text-xs md:text-sm px-2 py-1">
                                 <span className="hidden sm:inline">Google Scholar</span>
-                                <span className="sm:hidden">Scholar</span>
+                                <span className="sm:hidden">Scholar</span> {/* 작은 화면용 텍스트 */}
                                 <ExternalLink className="h-3 w-3 md:h-4 md:w-4 ml-1 flex-shrink-0" />
+                            </Button>
+                        </a>
+
+                        {/* --- GitHub 링크 추가 (아이콘 버튼 형태) --- */}
+                        <a href="https://github.com/wlsdnjswon/vector-ontology-by-backend-RAG" target="_blank" rel="noopener noreferrer" title="GitHub">
+                            {/* 여기에 실제 GitHub 프로필 URL을 넣으세요 */}
+                            <Button variant="ghost" size="icon" className="w-8 h-8 md:w-9 md:h-9 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full">
+                                {/* SVG GitHub 아이콘 사용 */}
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                                </svg>
+                                <span className="sr-only">GitHub</span> {/* 스크린 리더용 텍스트 */}
                             </Button>
                         </a>
                     </div>
