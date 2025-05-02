@@ -20,7 +20,7 @@ interface Message {
 const initialMessages: Message[] = [
     {
         role: "assistant",
-        content: "안녕하세요! RAG 챗봇입니다. 개발자에 대해 이것저것 질문해 보세요! 현재 무료 서버를 이용하고 있어. 답변에 시간이 걸릴 수 있습니다!",
+        content: "안녕하세요! RAG 챗봇입니다. 개발자에 대해 이것저것 질문해 보세요! 서버가 실행되는 첫 답변은 답변에 1~2분정도 시간이 걸릴 수 있습니다!",
         completed: true,
     },
 ];
